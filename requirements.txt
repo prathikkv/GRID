@@ -1,0 +1,10 @@
+streamlit
+requests
+pubchempy
+scispacy
+mygene
+plotly
+networkx
+matplotlib
+pytest
+pandas
