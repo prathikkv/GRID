@@ -25,6 +25,7 @@ class QueryParserAgent:
 
     ACTION_KEYWORDS = ["list", "find", "describe", "show", "get", "which"]
 
+
     def parse(self, query: str) -> Dict[str, Any]:
         """Parse a natural language query into structured components."""
         text = query.lower()
@@ -43,6 +44,7 @@ class QueryParserAgent:
             (r"trials for\s+([A-Za-z0-9\-]+)", "drug"),
             (r"is\s+([A-Za-z0-9\-]+)\s+approved", "drug"),
             (r"for\s+([A-Za-z0-9\-]+)\s+in\s+phase", "drug"),
+
         ]
         for pat, etype in patterns:
             m = re.search(pat, query, re.I)
@@ -69,6 +71,7 @@ class QueryParserAgent:
                     entity = m.group(1)
                     if entity_type is None:
                         entity_type = "drug"
+
 
         filters: Dict[str, Any] = {}
         m = re.search(r"phase\s+(\d+)", text)
