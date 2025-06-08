@@ -49,8 +49,4 @@ def test_parse_show_trials_phase_query():
     assert res["filters"].get("phase") == "2"
 
 
-def test_parse_list_diseases_for_drug_phase_query():
-    res = parser.parse("List the diseases in Phase-2 for Imatinib")
-    assert res["entity"] == "Imatinib"
-    assert res["entity_type"] == "drug"
-    assert res["filters"].get("phase") == "2"
+

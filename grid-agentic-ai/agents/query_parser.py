@@ -34,7 +34,7 @@ class QueryParserAgent:
 
         entity = None
         patterns = [
-            (r"in\s+phase[-\s]*\d+\s+for\s+([A-Za-z0-9\-]+)", "drug"),
+
             (r"targeting\s+([A-Za-z0-9\-]+)", "target"),
             (r"gene\s+([A-Za-z0-9\-]+)", "gene"),
             (r"drug\s+([A-Za-z0-9\-]+)", "drug"),
@@ -44,6 +44,7 @@ class QueryParserAgent:
             (r"trials for\s+([A-Za-z0-9\-]+)", "drug"),
             (r"is\s+([A-Za-z0-9\-]+)\s+approved", "drug"),
             (r"for\s+([A-Za-z0-9\-]+)\s+in\s+phase", "drug"),
+
         ]
         for pat, etype in patterns:
             m = re.search(pat, query, re.I)
@@ -63,17 +64,12 @@ class QueryParserAgent:
                 entity_type = "target"
 
         # Additional fallback heuristics to guess the entity from common phrasing
-        if entity is None:
+
             if re.search(r"phase|approved|trials?", text):
                 m = re.search(r"(?:for|is)\s+([A-Za-z0-9\-]+)", text)
                 if m:
                     entity = m.group(1)
-                    # override entity_type only if not explicitly set to gene/disease
-                    if entity_type in {None, "disease"}:
-                        entity_type = "drug"
 
-        filters: Dict[str, Any] = {}
-        m = re.search(r"phase[-\s]*(\d+)", text)
         if m:
             filters["phase"] = m.group(1)
         m = re.search(r"expression\s*[>=]+\s*(\d+(?:\.\d+)?)", text)
@@ -83,15 +79,12 @@ class QueryParserAgent:
         if m:
             filters["species"] = m.group(1)
 
-        result = {
+
             "entity": entity,
             "entity_type": entity_type,
             "action": action,
             "filters": filters,
         }
 
-        if entity is None or entity_type is None:
-            print("QueryParserAgent debug:", result)
 
-        return result
 
