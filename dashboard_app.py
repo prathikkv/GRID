@@ -3,6 +3,11 @@ import sys
 import tempfile
 import streamlit as st
 
+try:
+    import pandas as pd  # type: ignore
+except Exception:  # pragma: no cover - optional
+    pd = None  # type: ignore
+
 # Ensure package path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
 
@@ -69,6 +74,17 @@ if st.button("Run Query"):
         retrieved_data = {}
         if entity_type == "disease":
             data = get_targets_for_disease(norm["resolved_id"])
+
+            
+            if data is None:
+                st.warning("\u2757 No data retrieved. Please try a different query.")
+            else:
+                rows = (
+                    data.get("data", {})
+                    .get("disease", {})
+                    .get("associatedTargets", {})
+                    .get("rows", [])
+                )
             if data:
                 rows = data.get("data", {}).get("disease", {}).get("associatedTargets", {}).get("rows", [])
                 retrieved_data["targets"] = [
@@ -81,6 +97,16 @@ if st.button("Run Query"):
                 ]
         elif entity_type == "drug":
             data = get_diseases_for_drug(norm["resolved_id"])
+
+            if data is None:
+                st.warning("\u2757 No data retrieved. Please try a different query.")
+            else:
+                rows = (
+                    data.get("data", {})
+                    .get("drug", {})
+                    .get("indications", {})
+                    .get("rows", [])
+                )
             if data:
                 rows = data.get("data", {}).get("drug", {}).get("indications", {}).get("rows", [])
                 retrieved_data["diseases"] = [
@@ -100,6 +126,17 @@ if st.button("Run Query"):
         if isinstance(matched, dict) and matched:
             key = next(iter(matched))
             table_data = matched[key]
+
+        if isinstance(table_data, str):
+            st.warning(table_data)
+        elif isinstance(table_data, (list, dict)) or (
+            pd is not None and isinstance(table_data, pd.DataFrame)
+        ):
+            if table_data:
+                st.subheader("Results Table")
+                st.table(table_data)
+            else:
+                st.info("No results found.")
         
         if table_data:
             st.subheader("Results Table")
@@ -108,6 +145,21 @@ if st.button("Run Query"):
             st.info("No results found.")
 
         # Downloads
+        if isinstance(table_data, (list, dict)) or (
+            pd is not None and isinstance(table_data, pd.DataFrame)
+        ):
+            if table_data:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
+                    output_agent.to_csv(table_data, tmp_csv.name)
+                    tmp_csv.seek(0)
+                    csv_bytes = tmp_csv.read()
+                st.download_button("Download CSV", csv_bytes, file_name="results.csv")
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_json:
+                    output_agent.to_json(table_data, tmp_json.name)
+                    tmp_json.seek(0)
+                    json_bytes = tmp_json.read()
+                st.download_button("Download JSON", json_bytes, file_name="results.json")
         if table_data:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
                 output_agent.to_csv(table_data, tmp_csv.name)
@@ -124,6 +176,10 @@ if st.button("Run Query"):
         # Plot network if possible
         nodes = []
         edges = []
+        if entity_type == "disease" and isinstance(table_data, list) and table_data:
+            nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
+            edges = [(entity, r.get("approvedSymbol")) for r in table_data]
+        elif entity_type == "drug" and isinstance(table_data, list) and table_data:
         if entity_type == "disease" and table_data:
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
             edges = [(entity, r.get("approvedSymbol")) for r in table_data]

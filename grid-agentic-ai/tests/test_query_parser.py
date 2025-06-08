@@ -34,3 +34,17 @@ def test_parse_expression_filter():
     res = parser.parse("List genes with expression >= 2")
     assert res["entity_type"] == "gene"
     assert res["filters"].get("expression") == "2"
+
+
+def test_parse_drug_approved_query():
+    res = parser.parse("Which diseases is Rituximab approved for?")
+    assert res["entity"] == "Rituximab"
+    assert res["entity_type"] == "drug"
+
+
+def test_parse_show_trials_phase_query():
+    res = parser.parse("Show trials for Dasatinib in Phase 2")
+    assert res["entity"] == "Dasatinib"
+    assert res["entity_type"] == "drug"
+    assert res["filters"].get("phase") == "2"
+

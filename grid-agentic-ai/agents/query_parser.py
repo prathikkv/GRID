@@ -23,6 +23,7 @@ from typing import Dict, Any
 class QueryParserAgent:
     """Lightweight rule-based query parser."""
 
+    ACTION_KEYWORDS = ["list", "find", "describe", "show", "get", "which"]
     ACTION_KEYWORDS = ["list", "find", "describe", "show", "get"]
 
     def parse(self, query: str) -> Dict[str, Any]:
@@ -40,6 +41,10 @@ class QueryParserAgent:
             (r"for\s+([A-Za-z0-9' \-]+\sdisease)", "disease"),
             (r"disease\s+([A-Za-z0-9' \-]+)", "disease"),
             (r"associated with\s+([A-Za-z0-9' \-]+)", "drug"),
+            (r"trials for\s+([A-Za-z0-9\-]+)", "drug"),
+            (r"is\s+([A-Za-z0-9\-]+)\s+approved", "drug"),
+            (r"for\s+([A-Za-z0-9\-]+)\s+in\s+phase", "drug"),
+
         ]
         for pat, etype in patterns:
             m = re.search(pat, query, re.I)
@@ -57,6 +62,16 @@ class QueryParserAgent:
                 entity_type = "disease"
             elif "target" in text:
                 entity_type = "target"
+
+        # Additional fallback heuristics to guess the entity from common phrasing
+        if entity is None and entity_type in {"drug", None}:
+            if re.search(r"phase|approved|trials?", text):
+                m = re.search(r"(?:for|is)\s+([A-Za-z0-9\-]+)", text)
+                if m:
+                    entity = m.group(1)
+                    if entity_type is None:
+                        entity_type = "drug"
+
 
         filters: Dict[str, Any] = {}
         m = re.search(r"phase\s+(\d+)", text)
