@@ -5,8 +5,8 @@ import streamlit as st
 
 try:
     import pandas as pd  # type: ignore
-except Exception:  # pragma: no cover - optional
-    pd = None  # type: ignore
+except Exception:
+    pd = None
 
 # Ensure package path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
@@ -74,7 +74,6 @@ if st.button("Run Query"):
         retrieved_data = {}
         if entity_type == "disease":
             data = get_targets_for_disease(norm["resolved_id"])
-
             if data is None:
                 st.warning("\u2757 No data retrieved. Please try a different query.")
             else:
@@ -84,7 +83,6 @@ if st.button("Run Query"):
                     .get("associatedTargets", {})
                     .get("rows", [])
                 )
-
                 retrieved_data["targets"] = [
                     {
                         "id": r.get("target", {}).get("id"),
@@ -95,7 +93,6 @@ if st.button("Run Query"):
                 ]
         elif entity_type == "drug":
             data = get_diseases_for_drug(norm["resolved_id"])
-
             if data is None:
                 st.warning("\u2757 No data retrieved. Please try a different query.")
             else:
@@ -105,7 +102,6 @@ if st.button("Run Query"):
                     .get("indications", {})
                     .get("rows", [])
                 )
-
                 retrieved_data["diseases"] = [
                     {
                         "name": r.get("disease", {}).get("name"),
@@ -134,7 +130,6 @@ if st.button("Run Query"):
                 st.table(table_data)
             else:
                 st.info("No results found.")
-
         else:
             st.info("No results found.")
 
@@ -155,7 +150,6 @@ if st.button("Run Query"):
                     json_bytes = tmp_json.read()
                 st.download_button("Download JSON", json_bytes, file_name="results.json")
 
-
         # Plot network if possible
         nodes = []
         edges = []
@@ -163,7 +157,6 @@ if st.button("Run Query"):
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
             edges = [(entity, r.get("approvedSymbol")) for r in table_data]
         elif entity_type == "drug" and isinstance(table_data, list) and table_data:
-
             nodes = [entity] + [r.get("name") for r in table_data]
             edges = [(entity, r.get("name")) for r in table_data]
 
@@ -174,3 +167,4 @@ if st.button("Run Query"):
                     st.image(tmp_img.name)
         
         st.success("Pipeline completed")
+
