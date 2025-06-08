@@ -47,3 +47,4 @@ def test_parse_show_trials_phase_query():
     assert res["entity"] == "Dasatinib"
     assert res["entity_type"] == "drug"
     assert res["filters"].get("phase") == "2"
+
