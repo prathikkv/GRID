@@ -5,8 +5,8 @@ import streamlit as st
 
 try:
     import pandas as pd  # type: ignore
-except Exception:  # pragma: no cover - optional
-    pd = None  # type: ignore
+except Exception:
+    pd = None
 
 # Ensure package path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
@@ -167,3 +167,4 @@ if st.button("Run Query"):
                     st.image(tmp_img.name)
         
         st.success("Pipeline completed")
+

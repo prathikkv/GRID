@@ -31,8 +31,9 @@ class QueryParserAgent:
         action = next((a for a in self.ACTION_KEYWORDS if a in text), "unknown")
 
         entity_type = None
-
         entity = None
+        filters: Dict[str, Any] = {}
+
         patterns = [
             (r"in\s+phase[-\s]*\d+\s+for\s+([A-Za-z0-9\-]+)", "drug"),
             (r"targeting\s+([A-Za-z0-9\-]+)", "target"),
@@ -45,6 +46,7 @@ class QueryParserAgent:
             (r"is\s+([A-Za-z0-9\-]+)\s+approved", "drug"),
             (r"for\s+([A-Za-z0-9\-]+)\s+in\s+phase", "drug"),
         ]
+
         for pat, etype in patterns:
             m = re.search(pat, query, re.I)
             if m:
@@ -72,13 +74,15 @@ class QueryParserAgent:
                     if entity_type in {None, "disease"}:
                         entity_type = "drug"
 
-        filters: Dict[str, Any] = {}
+        # Extract filters
         m = re.search(r"phase[-\s]*(\d+)", text)
         if m:
             filters["phase"] = m.group(1)
+
         m = re.search(r"expression\s*[>=]+\s*(\d+(?:\.\d+)?)", text)
         if m:
             filters["expression"] = m.group(1)
+
         m = re.search(r"\b(human|mouse|rat|zebrafish)\b", text)
         if m:
             filters["species"] = m.group(1)
@@ -94,4 +98,3 @@ class QueryParserAgent:
             print("QueryParserAgent debug:", result)
 
         return result
-
