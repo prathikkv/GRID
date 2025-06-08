@@ -1,6 +1,6 @@
 # GRID Agentic AI
 
-This repository provides a prototype collection of small agents for biomedical data exploration. The code now lives under the `grid_agentic_ai/` package and includes:
+
 
 - **agents/** – core agent modules
 - **demo/** – example scripts showing how to use the agents
@@ -22,6 +22,7 @@ The main agent currently implemented is `normalize_term` which resolves drug, ge
 | **query_parser** | Converts natural language queries into structured intent and filters. |
 | **summarizer** | Generates short textual summaries of matched results. |
 | **output_generator** | Exports tables and network graphs. |
+
 
 
 ## Installation
@@ -55,7 +56,7 @@ From the repository root, run the demo scripts inside the `grid_agentic_ai/demo`
 ```bash
 python grid_agentic_ai/demo/demo_normalizer.py
 python grid_agentic_ai/demo/demo_retriever.py
-```
+
 
 The retriever demo requires network access and the `requests` package.
 
@@ -100,3 +101,4 @@ The following modules are implemented as part of the minimum viable product:
 - [x] Open Targets Live Integration
 - [ ] ClinicalTrials.gov (Optional)
 - [ ] Network Graph Visual Enhancements (Optional)
+

@@ -1,33 +1,16 @@
 """Matching utilities for GRID agents.
 
-This module currently provides two mechanisms:
-
-``match_targets_to_drugs`` -- a simple helper that pairs target dictionaries
-with drug dictionaries and sorts the matches by score.
-
-``MatcherAgent`` -- a higher level class that can combine parsed queries with
-retrieved data to produce filtered, human readable results.  The class is
-designed to be lightweight and rule based so it can be extended in the future
-without introducing heavy dependencies or LLM calls.
+This module provides:
+- `match_targets_to_drugs`: helper to pair targets with drug data.
+- `MatcherAgent`: rule-based matcher combining parsed queries with retrieved data.
 """
 
 from __future__ import annotations
-
 from typing import List, Dict, Any
 
 
 def match_targets_to_drugs(targets: List[Dict], drug_data: List[Dict]) -> List[Dict]:
-    """Match targets with drugs based on overlapping target IDs.
-
-    Args:
-        targets: List of dictionaries with keys ``id``, ``approvedSymbol``, and
-            optional ``score``.
-        drug_data: List of dictionaries with keys ``targetId``, ``drugName``,
-            and optional ``status``.
-
-    Returns:
-        List of matched target-drug dictionaries sorted by score descending.
-    """
+    """Match targets with drugs based on overlapping target IDs."""
     matches: List[Dict] = []
     for target in targets:
         for drug in drug_data:
@@ -45,15 +28,7 @@ class MatcherAgent:
     """Rule-based matcher for combining parsed queries with retrieved data."""
 
     def match(self, parsed_query: Dict[str, Any], retrieved_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Return a filtered result set based on the query type.
-
-        Parameters
-        ----------
-        parsed_query:
-            Structured query as produced by ``QueryParserAgent``.
-        retrieved_data:
-            Dictionary of previously retrieved data relevant to the query.
-        """
+        """Return a filtered result set based on the query type."""
 
         action = parsed_query.get("action")
         entity_type = parsed_query.get("entity_type")
@@ -118,5 +93,4 @@ class MatcherAgent:
                 ]
             return {"gene_expression": results}
 
-        # default fall-through
         return {"message": "Query type not supported"}

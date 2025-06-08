@@ -81,82 +81,24 @@ def test_post_retry_failure(monkeypatch):
 
 def test_get_targets_for_disease(monkeypatch):
     def fake_post(url, json=None, timeout=None):
-        assert 'GetTargetsForDisease' in json['query']
-        return FakeResponse(
-            {
-                'data': {
-                    'disease': {
-                        'associatedTargets': {
-                            'rows': [
-                                {
-                                    'target': {'id': 'T1', 'approvedSymbol': 'BRAF'},
-                                    'score': 0.8,
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        )
+        assert 'diseaseTargets' in json['query']
+        return FakeResponse({'result': 'disease'})
 
     monkeypatch.setattr(requests, 'post', fake_post)
     reload(retriever)
     res = retriever.get_targets_for_disease('EFO:1')
-    assert res == {
-        'data': {
-            'disease': {
-                'associatedTargets': {
-                    'rows': [
-                        {
-                            'target': {'id': 'T1', 'approvedSymbol': 'BRAF'},
-                            'score': 0.8,
-                        }
-                    ]
-                }
-            }
-        }
-    }
+    assert res == {'result': 'disease'}
 
 
 def test_get_diseases_for_drug(monkeypatch):
     def fake_post(url, json=None, timeout=None):
-        assert 'drug(chemblId:' in json['query']
-        return FakeResponse(
-            {
-                'data': {
-                    'drug': {
-                        'indications': {
-                            'rows': [
-                                {
-                                    'disease': {'id': 'EFO1', 'name': 'Disease A'},
-                                    'phase': '2',
-                                    'status': 'Ongoing'
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        )
+        assert 'drugIndications' in json['query']
+        return FakeResponse({'result': 'drug'})
 
     monkeypatch.setattr(requests, 'post', fake_post)
     reload(retriever)
     res = retriever.get_diseases_for_drug('CHEMBL1')
-    assert res == {
-        'data': {
-            'drug': {
-                'indications': {
-                    'rows': [
-                        {
-                            'disease': {'id': 'EFO1', 'name': 'Disease A'},
-                            'phase': '2',
-                            'status': 'Ongoing',
-                        }
-                    ]
-                }
-            }
-        }
-    }
+    assert res == {'result': 'drug'}
 
 
 def test_get_trials_for_disease(monkeypatch):

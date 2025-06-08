@@ -1,15 +1,17 @@
 import argparse
+import os
+import sys
 import re
 
-from grid_agentic_ai.agents.query_parser import QueryParserAgent
-from grid_agentic_ai.agents.normalizer import normalize_term
-from grid_agentic_ai.agents.retriever_opentargets import (
-    get_targets_for_disease,
-    get_diseases_for_drug,
-)
-from grid_agentic_ai.agents.matcher import MatcherAgent
-from grid_agentic_ai.agents.summarizer import SummarizerAgent
-from grid_agentic_ai.agents.output_generator import OutputGeneratorAgent
+# Allow importing from the hyphenated folder
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'grid-agentic-ai')))
+
+from agents.query_parser import QueryParserAgent
+from agents.normalizer import normalize_term
+from agents.retriever_opentargets import get_targets_for_disease, get_diseases_for_drug
+from agents.matcher import MatcherAgent
+from agents.summarizer import SummarizerAgent
+from agents.output_generator import OutputGeneratorAgent
 
 
 def run_query_pipeline(query: str) -> None:
@@ -17,7 +19,7 @@ def run_query_pipeline(query: str) -> None:
     parser = QueryParserAgent()
     parsed = parser.parse(query)
 
-    # Heuristic: if parser failed to extract key parts, attempt simple regexes
+    # Heuristic fallback if parsing failed
     if not parsed.get('entity'):
         m = re.search(r"for\s+([A-Za-z0-9\-]+)", query, re.I)
         if m:
@@ -39,24 +41,17 @@ def run_query_pipeline(query: str) -> None:
     normalized = None
     if parsed.get('entity') and parsed.get('entity_type'):
         normalized = normalize_term(parsed['entity_type'], parsed['entity'])
+
     print("Normalized entity:", normalized)
 
     retrieved = {}
     try:
         if parsed.get('entity_type') == 'drug':
-            chembl_id = None
-            if normalized and normalized.get('resolved_id'):
-                chembl_id = normalized['resolved_id']
-            else:
-                chembl_id = parsed.get('entity')
+            chembl_id = normalized.get('resolved_id') if normalized else parsed.get('entity')
             res = get_diseases_for_drug(str(chembl_id))
             retrieved['diseases'] = res
         elif parsed.get('entity_type') == 'disease':
-            efo_id = None
-            if normalized and normalized.get('resolved_id'):
-                efo_id = normalized['resolved_id']
-            else:
-                efo_id = parsed.get('entity')
+            efo_id = normalized.get('resolved_id') if normalized else parsed.get('entity')
             res = get_targets_for_disease(str(efo_id))
             retrieved['targets'] = res
     except Exception as exc:

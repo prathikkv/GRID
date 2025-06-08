@@ -1,21 +1,23 @@
 import os
+import sys
 import tempfile
 import streamlit as st
 
 try:
-    import pandas as pd  # type: ignore
-except Exception:  # pragma: no cover - optional
-    pd = None  # type: ignore
+    import pandas as pd
+except Exception:
+    pd = None
 
-from grid_agentic_ai.agents.normalizer import normalize_term
-from grid_agentic_ai.agents.query_parser import QueryParserAgent
-from grid_agentic_ai.agents.retriever_opentargets import (
-    get_targets_for_disease,
-    get_diseases_for_drug,
-)
-from grid_agentic_ai.agents.matcher import MatcherAgent
-from grid_agentic_ai.agents.output_generator import OutputGeneratorAgent
+# Add internal modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
 
+from agents.normalizer import normalize_term
+from agents.query_parser import QueryParserAgent
+from agents.retriever_opentargets import get_targets_for_disease, get_diseases_for_drug
+from agents.matcher import MatcherAgent
+from agents.output_generator import OutputGeneratorAgent
+
+# Initialize agents
 parser = QueryParserAgent()
 matcher = MatcherAgent()
 output_agent = OutputGeneratorAgent()
@@ -56,7 +58,6 @@ if st.button("Run Query"):
         except Exception as exc:
             st.error(f"Failed to parse query: {exc}")
             st.stop()
-        print("Parsed query:", parsed)
 
         entity = parsed.get("entity")
         entity_type = parsed.get("entity_type")
@@ -67,30 +68,21 @@ if st.button("Run Query"):
             st.stop()
 
         norm = normalize_term(entity_type, entity)
-        print("Normalized ID:", norm.get("resolved_id"))
         if not norm.get("resolved_id"):
-            st.error("Normalization failed for entity: %s" % entity)
+            st.error(f"Normalization failed for entity: {entity}")
             st.stop()
 
         retrieved_data = {}
         if entity_type == "disease":
             data = get_targets_for_disease(norm["resolved_id"])
-            rows = []
-            if data is None:
-                st.warning("\u2757 No data retrieved. Please try a different query.")
-            else:
-                with st.expander("Raw API Output"):
-                    st.json(data)
-                d = data.get("data") if isinstance(data, dict) else {}
-                disease_info = d.get("disease") if isinstance(d, dict) else {}
-                assoc = (
-                    disease_info.get("associatedTargets")
-                    if isinstance(disease_info, dict)
-                    else {}
-                )
-                rows = assoc.get("rows") if isinstance(assoc, dict) else []
-            print("Raw rows:", rows)
-
+            with st.expander("Raw API Output"):
+                st.json(data)
+            rows = (
+                data.get("data", {})
+                .get("disease", {})
+                .get("associatedTargets", {})
+                .get("rows", [])
+            )
             if not rows:
                 st.warning("No data found for this query.")
             retrieved_data["targets"] = [
@@ -103,20 +95,14 @@ if st.button("Run Query"):
             ]
         elif entity_type == "drug":
             data = get_diseases_for_drug(norm["resolved_id"])
-            rows = []
-            if data is None:
-                st.warning("\u2757 No data retrieved. Please try a different query.")
-            else:
-                with st.expander("Raw API Output"):
-                    st.json(data)
-                d = data.get("data") if isinstance(data, dict) else {}
-                drug_info = d.get("drug") if isinstance(d, dict) else {}
-                ind = (
-                    drug_info.get("indications") if isinstance(drug_info, dict) else {}
-                )
-                rows = ind.get("rows") if isinstance(ind, dict) else []
-            print("Raw rows:", rows)
-
+            with st.expander("Raw API Output"):
+                st.json(data)
+            rows = (
+                data.get("data", {})
+                .get("drug", {})
+                .get("indications", {})
+                .get("rows", [])
+            )
             if not rows:
                 st.warning("No data found for this query.")
             retrieved_data["diseases"] = [
@@ -126,12 +112,9 @@ if st.button("Run Query"):
                 }
                 for r in rows
             ]
-        else:
-            data = None
 
         matched = matcher.match(parsed, retrieved_data)
 
-        # Determine table data for display and export
         table_data = []
         if isinstance(matched, dict) and matched:
             key = next(iter(matched))
@@ -150,30 +133,26 @@ if st.button("Run Query"):
         else:
             st.info("No results found.")
 
-        # Downloads
-        if isinstance(table_data, (list, dict)) or (
-            pd is not None and isinstance(table_data, pd.DataFrame)
-        ):
-            if table_data:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
-                    output_agent.to_csv(table_data, tmp_csv.name)
-                    tmp_csv.seek(0)
-                    csv_bytes = tmp_csv.read()
-                st.download_button("Download CSV", csv_bytes, file_name="results.csv")
+        # CSV/JSON download buttons
+        if table_data:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
+                output_agent.to_csv(table_data, tmp_csv.name)
+                tmp_csv.seek(0)
+                csv_bytes = tmp_csv.read()
+            st.download_button("Download CSV", csv_bytes, file_name="results.csv")
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_json:
-                    output_agent.to_json(table_data, tmp_json.name)
-                    tmp_json.seek(0)
-                    json_bytes = tmp_json.read()
-                st.download_button("Download JSON", json_bytes, file_name="results.json")
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_json:
+                output_agent.to_json(table_data, tmp_json.name)
+                tmp_json.seek(0)
+                json_bytes = tmp_json.read()
+            st.download_button("Download JSON", json_bytes, file_name="results.json")
 
-        # Plot network if possible
-        nodes = []
-        edges = []
-        if entity_type == "disease" and isinstance(table_data, list) and table_data:
+        # Graph visualization
+        nodes, edges = [], []
+        if entity_type == "disease" and isinstance(table_data, list):
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
             edges = [(entity, r.get("approvedSymbol")) for r in table_data]
-        elif entity_type == "drug" and isinstance(table_data, list) and table_data:
+        elif entity_type == "drug" and isinstance(table_data, list):
             nodes = [entity] + [r.get("name") for r in table_data]
             edges = [(entity, r.get("name")) for r in table_data]
 
@@ -182,5 +161,5 @@ if st.button("Run Query"):
                 output_agent.plot_network(nodes, edges, tmp_img.name)
                 if os.path.exists(tmp_img.name):
                     st.image(tmp_img.name)
-        
-        st.success("Pipeline completed")
+
+        st.success("Pipeline completed ✅")
