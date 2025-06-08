@@ -6,9 +6,9 @@ import streamlit as st
 try:
     import pandas as pd  # type: ignore
 except Exception:
-    pd = None
+    pd = None  # Fallback if pandas is unavailable
 
-# Ensure package path
+# Add internal modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
 
 from agents.normalizer import normalize_term
@@ -17,6 +17,7 @@ from agents.retriever_opentargets import get_targets_for_disease, get_diseases_f
 from agents.matcher import MatcherAgent
 from agents.output_generator import OutputGeneratorAgent
 
+# Initialize agents
 parser = QueryParserAgent()
 matcher = MatcherAgent()
 output_agent = OutputGeneratorAgent()
@@ -68,53 +69,50 @@ if st.button("Run Query"):
 
         norm = normalize_term(entity_type, entity)
         if not norm.get("resolved_id"):
-            st.error("Normalization failed for entity: %s" % entity)
+            st.error(f"Normalization failed for entity: {entity}")
             st.stop()
 
         retrieved_data = {}
         if entity_type == "disease":
             data = get_targets_for_disease(norm["resolved_id"])
-            if data is None:
-                st.warning("\u2757 No data retrieved. Please try a different query.")
-            else:
-                rows = (
-                    data.get("data", {})
-                    .get("disease", {})
-                    .get("associatedTargets", {})
-                    .get("rows", [])
-                )
-                retrieved_data["targets"] = [
-                    {
-                        "id": r.get("target", {}).get("id"),
-                        "approvedSymbol": r.get("target", {}).get("approvedSymbol"),
-                        "score": r.get("score"),
-                    }
-                    for r in rows
-                ]
+            rows = []
+            if data:
+                d = data.get("data", {})
+                disease_info = d.get("disease", {})
+                assoc = disease_info.get("associatedTargets", {})
+                rows = assoc.get("rows", [])
+            if not rows:
+                st.warning("No data found for this query.")
+            retrieved_data["targets"] = [
+                {
+                    "id": r.get("target", {}).get("id"),
+                    "approvedSymbol": r.get("target", {}).get("approvedSymbol"),
+                    "score": r.get("score"),
+                }
+                for r in rows
+            ]
+
         elif entity_type == "drug":
             data = get_diseases_for_drug(norm["resolved_id"])
-            if data is None:
-                st.warning("\u2757 No data retrieved. Please try a different query.")
-            else:
-                rows = (
-                    data.get("data", {})
-                    .get("drug", {})
-                    .get("indications", {})
-                    .get("rows", [])
-                )
-                retrieved_data["diseases"] = [
-                    {
-                        "name": r.get("disease", {}).get("name"),
-                        "phase": r.get("status"),
-                    }
-                    for r in rows
-                ]
-        else:
-            data = None
+            rows = []
+            if data:
+                d = data.get("data", {})
+                drug_info = d.get("drug", {})
+                ind = drug_info.get("indications", {})
+                rows = ind.get("rows", [])
+            if not rows:
+                st.warning("No data found for this query.")
+            retrieved_data["diseases"] = [
+                {
+                    "name": r.get("disease", {}).get("name"),
+                    "phase": r.get("status"),
+                }
+                for r in rows
+            ]
 
         matched = matcher.match(parsed, retrieved_data)
 
-        # Determine table data for display and export
+        # Determine table data
         table_data = []
         if isinstance(matched, dict) and matched:
             key = next(iter(matched))
@@ -134,29 +132,25 @@ if st.button("Run Query"):
             st.info("No results found.")
 
         # Downloads
-        if isinstance(table_data, (list, dict)) or (
-            pd is not None and isinstance(table_data, pd.DataFrame)
-        ):
-            if table_data:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
-                    output_agent.to_csv(table_data, tmp_csv.name)
-                    tmp_csv.seek(0)
-                    csv_bytes = tmp_csv.read()
-                st.download_button("Download CSV", csv_bytes, file_name="results.csv")
+        if table_data:
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
+                output_agent.to_csv(table_data, tmp_csv.name)
+                tmp_csv.seek(0)
+                csv_bytes = tmp_csv.read()
+            st.download_button("Download CSV", csv_bytes, file_name="results.csv")
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_json:
-                    output_agent.to_json(table_data, tmp_json.name)
-                    tmp_json.seek(0)
-                    json_bytes = tmp_json.read()
-                st.download_button("Download JSON", json_bytes, file_name="results.json")
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.json') as tmp_json:
+                output_agent.to_json(table_data, tmp_json.name)
+                tmp_json.seek(0)
+                json_bytes = tmp_json.read()
+            st.download_button("Download JSON", json_bytes, file_name="results.json")
 
-        # Plot network if possible
-        nodes = []
-        edges = []
-        if entity_type == "disease" and isinstance(table_data, list) and table_data:
+        # Plot network
+        nodes, edges = [], []
+        if entity_type == "disease" and isinstance(table_data, list):
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
             edges = [(entity, r.get("approvedSymbol")) for r in table_data]
-        elif entity_type == "drug" and isinstance(table_data, list) and table_data:
+        elif entity_type == "drug" and isinstance(table_data, list):
             nodes = [entity] + [r.get("name") for r in table_data]
             edges = [(entity, r.get("name")) for r in table_data]
 
@@ -165,6 +159,5 @@ if st.button("Run Query"):
                 output_agent.plot_network(nodes, edges, tmp_img.name)
                 if os.path.exists(tmp_img.name):
                     st.image(tmp_img.name)
-        
-        st.success("Pipeline completed")
 
+        st.success("Pipeline completed")
