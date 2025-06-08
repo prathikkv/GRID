@@ -25,7 +25,6 @@ class QueryParserAgent:
 
     ACTION_KEYWORDS = ["list", "find", "describe", "show", "get", "which"]
 
-
     def parse(self, query: str) -> Dict[str, Any]:
         """Parse a natural language query into structured components."""
         text = query.lower()
@@ -86,5 +85,6 @@ class QueryParserAgent:
             "action": action,
             "filters": filters,
         }
+
 
 
