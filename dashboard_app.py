@@ -4,9 +4,9 @@ import tempfile
 import streamlit as st
 
 try:
-    import pandas as pd  # type: ignore
+    import pandas as pd
 except Exception:
-    pd = None  # Fallback if pandas is unavailable
+    pd = None
 
 # Add internal modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
@@ -75,12 +75,14 @@ if st.button("Run Query"):
         retrieved_data = {}
         if entity_type == "disease":
             data = get_targets_for_disease(norm["resolved_id"])
-            rows = []
-            if data:
-                d = data.get("data", {})
-                disease_info = d.get("disease", {})
-                assoc = disease_info.get("associatedTargets", {})
-                rows = assoc.get("rows", [])
+            with st.expander("Raw API Output"):
+                st.json(data)
+            rows = (
+                data.get("data", {})
+                .get("disease", {})
+                .get("associatedTargets", {})
+                .get("rows", [])
+            )
             if not rows:
                 st.warning("No data found for this query.")
             retrieved_data["targets"] = [
@@ -91,15 +93,16 @@ if st.button("Run Query"):
                 }
                 for r in rows
             ]
-
         elif entity_type == "drug":
             data = get_diseases_for_drug(norm["resolved_id"])
-            rows = []
-            if data:
-                d = data.get("data", {})
-                drug_info = d.get("drug", {})
-                ind = drug_info.get("indications", {})
-                rows = ind.get("rows", [])
+            with st.expander("Raw API Output"):
+                st.json(data)
+            rows = (
+                data.get("data", {})
+                .get("drug", {})
+                .get("indications", {})
+                .get("rows", [])
+            )
             if not rows:
                 st.warning("No data found for this query.")
             retrieved_data["diseases"] = [
@@ -112,7 +115,6 @@ if st.button("Run Query"):
 
         matched = matcher.match(parsed, retrieved_data)
 
-        # Determine table data
         table_data = []
         if isinstance(matched, dict) and matched:
             key = next(iter(matched))
@@ -131,7 +133,7 @@ if st.button("Run Query"):
         else:
             st.info("No results found.")
 
-        # Downloads
+        # CSV/JSON download buttons
         if table_data:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as tmp_csv:
                 output_agent.to_csv(table_data, tmp_csv.name)
@@ -145,7 +147,7 @@ if st.button("Run Query"):
                 json_bytes = tmp_json.read()
             st.download_button("Download JSON", json_bytes, file_name="results.json")
 
-        # Plot network
+        # Graph visualization
         nodes, edges = [], []
         if entity_type == "disease" and isinstance(table_data, list):
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]
@@ -160,4 +162,4 @@ if st.button("Run Query"):
                 if os.path.exists(tmp_img.name):
                     st.image(tmp_img.name)
 
-        st.success("Pipeline completed")
+        st.success("Pipeline completed ✅")

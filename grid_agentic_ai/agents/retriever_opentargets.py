@@ -1,13 +1,12 @@
-"""Utilities for retrieving data from the Open Targets platform."""
+"""Utilities for retrieving data from the Open Targets platform and ClinicalTrials.gov."""
 
 from typing import Optional, Dict, Any, Callable
 import time
 
 try:
     import requests  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
+except Exception:  # optional fallback
     requests = None  # type: ignore
-
 
 OPENTARGETS_URL = "https://api.platform.opentargets.org/api/v4/graphql"
 
@@ -29,30 +28,29 @@ def _post(query: str, variables: Dict[str, Any]) -> Optional[Dict]:
         if response is not None:
             response.raise_for_status()
             return response.json()
-    except requests.exceptions.RequestException:  # type: ignore[attr-defined]
-        return None
+    except requests.exceptions.RequestException as exc:  # type: ignore[attr-defined]
+        print("Open Targets request failed:", exc)
     return None
 
 
 def _request_with_retry(func: Callable[[], Any]) -> Optional[Any]:
-    """Call ``func`` with simple retry logic for network requests."""
+    """Call `func` with retry logic for network issues."""
     if not requests:
         return None
     for attempt in range(3):
         try:
-            response = func()
-            return response
-        except requests.exceptions.RequestException:  # type: ignore[attr-defined]
+            return func()
+        except requests.exceptions.RequestException as exc:  # type: ignore[attr-defined]
             if attempt == 2:
-                return None
+                print("Final failure:", exc)
             time.sleep(2)
     return None
 
 
 def get_targets_for_disease(efo_id: str) -> Optional[Dict]:
-    """Return targets associated with a disease given an EFO ID."""
+    """Return targets associated with a disease (EFO ID) from Open Targets."""
     query = """
-    query diseaseTargets($efoId: String!) {
+    query GetTargetsForDisease($efoId: String!) {
       disease(efoId: $efoId) {
         id
         name
@@ -73,9 +71,9 @@ def get_targets_for_disease(efo_id: str) -> Optional[Dict]:
 
 
 def get_diseases_for_drug(chembl_id: str) -> Optional[Dict]:
-    """Return diseases associated with a drug given a CHEMBL ID."""
+    """Return diseases associated with a drug (ChEMBL ID) from Open Targets."""
     query = """
-    query drugIndications($chemblId: String!) {
+    query GetDiseasesForDrug($chemblId: String!) {
       drug(chemblId: $chemblId) {
         id
         name
@@ -96,21 +94,8 @@ def get_diseases_for_drug(chembl_id: str) -> Optional[Dict]:
     return _post(query, variables)
 
 
-def get_trials_for_disease(disease_name: str, phase: str | None = None) -> list:
-    """Return clinical trials for a disease from ClinicalTrials.gov.
-
-    Parameters
-    ----------
-    disease_name:
-        Disease name or keyword to search for.
-    phase:
-        Optional phase string (e.g. ``"Phase 2"``) to filter results.
-
-    Returns
-    -------
-    list
-        List of dictionaries with ``title``, ``phase`` and ``status`` keys.
-    """
+def get_trials_for_disease(disease_name: str, phase: Optional[str] = None) -> list:
+    """Return trials from ClinicalTrials.gov for a given disease and optional phase."""
     if not requests:
         return []
 
@@ -130,16 +115,13 @@ def get_trials_for_disease(disease_name: str, phase: str | None = None) -> list:
         print("ClinicalTrials.gov request failed:", exc)
         return []
 
-    trials: list = []
-    fields = (
-        data.get("StudyFieldsResponse", {})
-        .get("StudyFields", [])
-    )
+    trials = []
+    fields = data.get("StudyFieldsResponse", {}).get("StudyFields", [])
     for entry in fields:
-        title = entry.get("BriefTitle", [""])[0] if entry.get("BriefTitle") else ""
-        trial_phase = entry.get("Phase", [""])[0] if entry.get("Phase") else ""
-        status = entry.get("Status", [""])[0] if entry.get("Status") else ""
-        if phase is None or str(trial_phase).lower() == str(phase).lower():
+        title = entry.get("BriefTitle", [""])[0]
+        trial_phase = entry.get("Phase", [""])[0]
+        status = entry.get("Status", [""])[0]
+        if phase is None or trial_phase.lower() == phase.lower():
             trials.append({"title": title, "phase": trial_phase, "status": status})
 
     return trials

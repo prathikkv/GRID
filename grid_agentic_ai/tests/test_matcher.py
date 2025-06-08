@@ -36,6 +36,14 @@ def test_matcher_list_diseases_by_phase():
     assert result == {"diseases_by_phase": [{"name": "D2", "phase": "2"}]}
 
 
+def test_matcher_fuzzy_disease_phase():
+    agent = MatcherAgent()
+    parsed = {"action": "list", "entity_type": "disease", "filters": {"phase": "2"}}
+    retrieved = {"diseases": [{"name": "D1", "status": "Phase 1"}, {"name": "D2", "status": "phase 2 ongoing"}]}
+    result = agent.match(parsed, retrieved)
+    assert result == {"diseases_by_phase": [{"name": "D2", "status": "phase 2 ongoing"}]}
+
+
 def test_matcher_targets_with_snps():
     agent = MatcherAgent()
     parsed = {"action": "list", "entity_type": "target", "filters": {"snp": True}}
@@ -101,6 +109,28 @@ def test_matcher_trials_by_drug_and_phase():
     result = agent.match(parsed, retrieved)
     assert result == {
         "trials_by_drug_phase": [{"nct": "1", "drug": "DrugA", "phase": "2"}]
+    }
+
+
+def test_matcher_fuzzy_phase_match():
+    agent = MatcherAgent()
+    parsed = {
+        "action": "list",
+        "entity_type": "drug",
+        "entity": "DrugA",
+        "filters": {"phase": "2"},
+    }
+    retrieved = {
+        "trials": [
+            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"},
+            {"nct": "2", "drug": "DrugA", "status": "Phase 3"},
+        ]
+    }
+    result = agent.match(parsed, retrieved)
+    assert result == {
+        "trials_by_drug_phase": [
+            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"}
+        ]
     }
 
 

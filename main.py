@@ -4,7 +4,7 @@ import sys
 import re
 
 # Allow importing from the hyphenated folder
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'grid-agentic-ai'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'grid-agentic-ai')))
 
 from agents.query_parser import QueryParserAgent
 from agents.normalizer import normalize_term
@@ -19,7 +19,7 @@ def run_query_pipeline(query: str) -> None:
     parser = QueryParserAgent()
     parsed = parser.parse(query)
 
-    # Heuristic fallback
+    # Heuristic fallback if parsing failed
     if not parsed.get('entity'):
         m = re.search(r"for\s+([A-Za-z0-9\-]+)", query, re.I)
         if m:
@@ -33,6 +33,7 @@ def run_query_pipeline(query: str) -> None:
             parsed.setdefault('filters', {})['phase'] = m.group(1)
 
     if parsed.get('entity') and parsed.get('entity_type') == 'disease' and 'for' in query.lower():
+        # Likely asking about diseases for a given drug
         parsed['entity_type'] = 'drug'
 
     print("Parsed query:", parsed)
@@ -40,6 +41,7 @@ def run_query_pipeline(query: str) -> None:
     normalized = None
     if parsed.get('entity') and parsed.get('entity_type'):
         normalized = normalize_term(parsed['entity_type'], parsed['entity'])
+
     print("Normalized entity:", normalized)
 
     retrieved = {}

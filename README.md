@@ -23,11 +23,7 @@ The main agent currently implemented is `normalize_term` which resolves drug, ge
 | **summarizer** | Generates short textual summaries of matched results. |
 | **output_generator** | Exports tables and network graphs. |
 
-The main agent currently implemented is `normalize_term` which resolves drug, gene, and disease terms to standard identifiers. Additional utilities include:
-* `retriever_opentargets` for querying the Open Targets platform
-* `matcher` for linking targets to drugs
-* `summarizer` for generating short textual summaries
-* `output_generator` for exporting results to CSV/JSON tables and simple graphs
+
 
 ## Installation
 
@@ -61,14 +57,6 @@ From the repository root, run the demo scripts inside the `grid_agentic_ai/demo`
 python grid_agentic_ai/demo/demo_normalizer.py
 python grid_agentic_ai/demo/demo_retriever.py
 
-## Running the Demos
-
-From the repository root, run the demo scripts inside the `grid-agentic-ai/demo` folder:
-
-```bash
-python grid-agentic-ai/demo/demo_normalizer.py
-python grid-agentic-ai/demo/demo_retriever.py
-```
 
 The retriever demo requires network access and the `requests` package.
 
@@ -93,7 +81,6 @@ python main.py --query "List diseases in Phase-2 for Imatinib"
 
 This executes query parsing, normalization, retrieval, matching, summarization,
 and optional table output.
-
 
 ## Running Tests
 
