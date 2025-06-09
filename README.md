@@ -1,7 +1,6 @@
 # GRID Agentic AI
 
 
-
 - **agents/** – core agent modules
 - **demo/** – example scripts showing how to use the agents
 - **tests/** – unit tests with mocked API calls

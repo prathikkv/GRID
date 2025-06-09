@@ -115,6 +115,7 @@ if st.button("Run Query"):
 
         matched = matcher.match(parsed, retrieved_data)
 
+        # Determine table data
         table_data = []
         if isinstance(matched, dict) and matched:
             key = next(iter(matched))
@@ -147,7 +148,7 @@ if st.button("Run Query"):
                 json_bytes = tmp_json.read()
             st.download_button("Download JSON", json_bytes, file_name="results.json")
 
-        # Graph visualization
+        # Network Graph
         nodes, edges = [], []
         if entity_type == "disease" and isinstance(table_data, list):
             nodes = [entity] + [r.get("approvedSymbol") for r in table_data]

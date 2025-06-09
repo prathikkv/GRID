@@ -112,28 +112,6 @@ def test_matcher_trials_by_drug_and_phase():
     }
 
 
-def test_matcher_fuzzy_phase_match():
-    agent = MatcherAgent()
-    parsed = {
-        "action": "list",
-        "entity_type": "drug",
-        "entity": "DrugA",
-        "filters": {"phase": "2"},
-    }
-    retrieved = {
-        "trials": [
-            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"},
-            {"nct": "2", "drug": "DrugA", "status": "Phase 3"},
-        ]
-    }
-    result = agent.match(parsed, retrieved)
-    assert result == {
-        "trials_by_drug_phase": [
-            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"}
-        ]
-    }
-
-
 def test_matcher_expression_data_by_tissue():
     agent = MatcherAgent()
     parsed = {
@@ -152,5 +130,27 @@ def test_matcher_expression_data_by_tissue():
     assert result == {
         "expression_data": [
             {"target": "T2", "tissue": "liver", "expression": 6}
+        ]
+    }
+
+
+def test_matcher_fuzzy_phase_match():
+    agent = MatcherAgent()
+    parsed = {
+        "action": "list",
+        "entity_type": "drug",
+        "entity": "DrugA",
+        "filters": {"phase": "2"},
+    }
+    retrieved = {
+        "trials": [
+            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"},
+            {"nct": "2", "drug": "DrugA", "status": "Phase 3"},
+        ]
+    }
+    result = agent.match(parsed, retrieved)
+    assert result == {
+        "trials_by_drug_phase": [
+            {"nct": "1", "drug": "DrugA", "status": "Phase 2 Recruiting"}
         ]
     }

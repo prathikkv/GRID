@@ -3,8 +3,8 @@ import os
 import sys
 import re
 
-# Allow importing from the hyphenated folder
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'grid-agentic-ai')))
+# Allow importing from the hyphenated folder (if needed)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'grid_agentic_ai')))
 
 from agents.query_parser import QueryParserAgent
 from agents.normalizer import normalize_term
@@ -33,17 +33,17 @@ def run_query_pipeline(query: str) -> None:
             parsed.setdefault('filters', {})['phase'] = m.group(1)
 
     if parsed.get('entity') and parsed.get('entity_type') == 'disease' and 'for' in query.lower():
-        # Likely asking about diseases for a given drug
         parsed['entity_type'] = 'drug'
 
     print("Parsed query:", parsed)
 
+    # Normalize entity (e.g., resolve "Imatinib" to ChEMBL ID)
     normalized = None
     if parsed.get('entity') and parsed.get('entity_type'):
         normalized = normalize_term(parsed['entity_type'], parsed['entity'])
-
     print("Normalized entity:", normalized)
 
+    # Retrieve data
     retrieved = {}
     try:
         if parsed.get('entity_type') == 'drug':
@@ -59,32 +59,10 @@ def run_query_pipeline(query: str) -> None:
 
     print('Retrieved data:', retrieved)
 
+    # Match results
     matcher = MatcherAgent()
     matched = matcher.match(parsed, retrieved)
     print('Matched results:', matched)
 
-    summarizer = SummarizerAgent()
-    summary = summarizer.summarize(matched, context=parsed)
-    print('\nSUMMARY:')
-    print(summary)
-
-    output = OutputGeneratorAgent()
-    if matched:
-        key = next(iter(matched.keys()))
-        table = output.to_table(matched[key])
-        if table:
-            print('\nTABLE:')
-            print(table)
-    else:
-        print('No results to display.')
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser(description='GRID Agentic AI CLI')
-    ap.add_argument('--query', required=True, help='Natural language query')
-    args = ap.parse_args()
-    run_query_pipeline(args.query)
-
-
-if __name__ == '__main__':
-    main()
+    # Summarize
+    summarizer = SummarizerAgent
