@@ -21,8 +21,17 @@ The main agent currently implemented is `normalize_term` which resolves drug, ge
 | **query_parser** | Converts natural language queries into structured intent and filters. |
 | **summarizer** | Generates short textual summaries of matched results. |
 | **output_generator** | Exports tables and network graphs. |
+| **graphql_query_agent** | Generates GraphQL queries from plain-English questions. |
 
+## GraphQLQueryAgent
 
+This agent loads a GraphQL schema and leverages LlamaIndex along with a local
+Ollama model to craft GraphQL queries from natural language questions.
+
+```python
+from grid_agentic_ai.agents.graphql_query_agent import generate_query
+query = generate_query("List drug names", "schema.graphql")
+```
 
 ## Installation
 
