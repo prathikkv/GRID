@@ -4,3 +4,4 @@ from .query_parser import QueryParserAgent
 
 from .summarizer import SummarizerAgent
 from .output_generator import OutputGeneratorAgent
+from .graphql_query_agent import GraphQLQueryAgent, generate_query
