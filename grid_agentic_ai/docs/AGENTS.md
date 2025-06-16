@@ -88,3 +88,15 @@ This document describes the public interface for each core agent in this reposit
   out = OutputGeneratorAgent()
   out.to_csv(results, "out.csv")
   ```
+
+## GraphQLQueryAgent
+
+- **Location:** `grid_agentic_ai/agents/graphql_query_agent.py`
+- **Class:** `GraphQLQueryAgent`
+- **Public Function:** `generate_query(question: str, schema_path: str) -> str`
+- **Description:** Load a GraphQL schema, index it with LlamaIndex and use a local Ollama model to generate GraphQL queries from natural language questions.
+- **Example:**
+  ```python
+  from grid_agentic_ai.agents.graphql_query_agent import generate_query
+  query = generate_query("List drug names", "schema.graphql")
+  ```
