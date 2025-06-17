@@ -4,7 +4,7 @@ import sys
 import re
 
 # Allow importing from the hyphenated folder (if needed)
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'grid_agentic_ai')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid_agentic_ai')))
 
 from agents.query_parser import QueryParserAgent
 from agents.normalizer import normalize_term
@@ -41,6 +41,12 @@ def run_query_pipeline(query: str) -> None:
     normalized = None
     if parsed.get('entity') and parsed.get('entity_type'):
         normalized = normalize_term(parsed['entity_type'], parsed['entity'])
+        if normalized is None or normalized.get('resolved_id') is None:
+            print("Normalization failed. Using fallback term.")
+            if normalized is None:
+                normalized = {"input": parsed.get('entity')}
+            normalized['resolved_id'] = parsed.get('entity')
+            normalized.setdefault('source', 'user input')
     print("Normalized entity:", normalized)
 
     # Retrieve data
@@ -63,6 +69,42 @@ def run_query_pipeline(query: str) -> None:
     matcher = MatcherAgent()
     matched = matcher.match(parsed, retrieved)
     print('Matched results:', matched)
+    if isinstance(matched, dict) and matched.get('message') == 'Query type not supported':
+        print('Query type not supported')
+        return
 
     # Summarize
-    summarizer = SummarizerAgent
+    summarizer = SummarizerAgent()
+    summary = summarizer.summarize(matched, context=parsed)
+    if summary:
+        print('Summary:', summary)
+    else:
+        print('No results found for this query.')
+
+    # Print table view of first result set if available
+    generator = OutputGeneratorAgent()
+    table_data = None
+    if isinstance(matched, dict) and matched:
+        first_key = next(iter(matched))
+        table_data = matched[first_key]
+    if table_data:
+        table_str = generator.to_table(table_data)
+        if table_str:
+            print(table_str)
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Entry point for the CLI."""
+    argp = argparse.ArgumentParser(description="Run GRID agentic pipeline")
+    argp.add_argument("query", nargs="?", help="Query text")
+    argp.add_argument("--query", dest="query_flag", help="Query text")
+    args = argp.parse_args(argv)
+
+    q = args.query or args.query_flag
+    if not q:
+        argp.error("No query provided")
+    run_query_pipeline(q)
+
+
+if __name__ == "__main__":
+    main()
