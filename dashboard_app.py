@@ -9,7 +9,7 @@ except Exception:
     pd = None
 
 # Add internal modules
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid-agentic-ai')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'grid_agentic_ai')))
 
 from agents.normalizer import normalize_term
 from agents.query_parser import QueryParserAgent
